@@ -1,0 +1,63 @@
+[project]
+name = "lia-interactive-agent"
+version = "0.1.1"
+description = "Lean Interactive Agent - a versatile AI agent designed for RAG"
+authors = [{ name = "Ruy Vieira", email = "ruy.vieiraneto@gmail.com" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.12"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+# The target Python version for Ruff to enforce.
+# This helps Ruff apply correct linting rules and syntax checks.
+target-version = "py312" # Or your specific Python version, e.g., "py39", "py310"
+
+# Exclude common directories and files from linting/formatting.
+# Ruff has some defaults, but you can extend them.
+exclude = [
+    ".git",
+    "__pypackages__",
+    ".ruff_cache",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "**/__init__.py", # Often excluded if you don't want strict linting on empty __init__.py files
+]
+
+# Set the line length for both linting and formatting.
+line-length = 88 # Black's default, a common choice
+
+# === Linter Settings ===
+[tool.ruff.lint]
+# Select the linting rule sets you want to enable.
+# "E" (pycodestyle) and "F" (pyflakes) are enabled by default.
+# "I" (isort) is crucial for import sorting.
+# Consider adding others like:
+# "B" (flake8-bugbear) - common bug warnings
+# "UP" (pyupgrade) - suggests modern Python syntax
+# "N" (pep8-naming) - naming conventions
+# "ANN" (flake8-annotations) - type annotation checks
+# "ISC" (flake8-implicit-str-concat) - warns about implicit string concatenation
+select = [
+    "E",
+    "F",
+    "I",  # This is the key for import sorting
+    "B",
+    "UP",
+    "N",  # Uncomment if you want to enforce naming conventions
+    # "ANN", # Uncomment if you are using type annotations heavily
+    "ISC", # Uncomment if you want to avoid implicit string concatenation
+]
+
+# Ignore specific rules you don't want to enforce.
+# This is useful if a rule conflicts with your project's style or a third-party library.
+ignore = [
+    "E501", # Line too long (often handled by formatter, so good to ignore if you use `ruff format`)
+    # "E402", # Module level import not at top of file (handled by "I" rule)
+    # "W292", # No newline at end of file (handled by formatter)
+]
