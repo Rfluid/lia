@@ -3,6 +3,7 @@ import logging
 from fastapi import (
     APIRouter,
     HTTPException,
+    WebSocket,
 )
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
@@ -16,6 +17,51 @@ from src.generate_response.model.response import LLMResponse
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.websocket("/user/websocket")
+async def send_message_ws(
+    websocket: WebSocket,
+):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_json()
+            req = InputRequest(**data)
+
+            config: RunnableConfig = {
+                "configurable": {"thread_id": req.thread_id, "websocket": websocket},
+            }
+            input: list[BaseMessage] = [
+                HumanMessage(
+                    content=[
+                        Input.model_validate(
+                            {
+                                "data": req.data,
+                            }
+                        ).model_dump()
+                    ]
+                ),
+            ]
+
+            agent_response = await start(
+                input,
+                config,
+                "response_generator",
+                req.chat_interface,
+                req.max_retries,
+                req.loop_threshold,
+                req.top_k,
+            )
+
+            message = agent_response["response"]
+
+            print(f"Generated WebSocket message: {message}")
+    except Exception as e:
+        logger.error(f"Error sending chat message: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Could not send chat message: {e}"
+        ) from e
 
 
 @router.post("/user", response_model=LLMResponse)
@@ -36,7 +82,7 @@ async def send_chat_message(
             ),
         ]
 
-        agent_response = start(
+        agent_response = await start(
             input,
             config,
             "response_generator",
@@ -74,7 +120,7 @@ async def send_system_instructions(
             ),
         ]
 
-        agent_response = start(
+        agent_response = await start(
             input,
             config,
             "context_incrementer",

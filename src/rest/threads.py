@@ -11,7 +11,7 @@ async def get_thread_state_endpoint(thread_id: str):
     API endpoint to retrieve the latest state of a specific thread.
     """
     try:
-        state_snapshot = get_latest_thread_state(thread_id)
+        state_snapshot = await get_latest_thread_state(thread_id)
         return {
             "values": state_snapshot.values,
             "metadata": state_snapshot.metadata,
@@ -32,7 +32,7 @@ async def get_thread_history_endpoint(thread_id: str):
     API endpoint to retrieve the full execution history of a specific thread.
     """
     try:
-        history = get_thread_history(thread_id)
+        history = await get_thread_history(thread_id)
         return [
             {
                 "values": snapshot.values,
@@ -53,6 +53,8 @@ async def get_thread_history_endpoint(thread_id: str):
 @router.delete("/{thread_id}")
 async def delete_thread_data(thread_id: str):
     try:
-        clear_thread(thread_id)
+        await clear_thread(thread_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Could not clear thread: {e}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Could not clear thread: {e}"
+        ) from e
