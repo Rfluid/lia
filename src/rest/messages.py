@@ -4,6 +4,7 @@ from fastapi import (
     APIRouter,
     HTTPException,
     WebSocket,
+    WebSocketDisconnect,
 )
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
@@ -57,11 +58,10 @@ async def send_message_ws(
             message = agent_response["response"]
 
             print(f"Generated WebSocket message: {message}")
+    except WebSocketDisconnect:
+        logger.info("Client disconnected.")
     except Exception as e:
         logger.error(f"Error sending chat message: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail=f"Could not send chat message: {e}"
-        ) from e
 
 
 @router.post("/user", response_model=LLMResponse)
