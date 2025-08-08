@@ -82,11 +82,10 @@ class ResponseGenerator:
                         final_data[k] = v
 
             # Send the delta frame as JSON (DICT) — not a JSON string
-            await websocket.send_json(
-                LLMWebSocketResponse(type=WebSocketData.delta, data=payload).model_dump(
-                    mode="json"
-                )
-            )
+            json_dump = LLMWebSocketResponse(
+                type=WebSocketData.delta, data=payload
+            ).model_dump(mode="json")
+            await websocket.send_json(json_dump)
 
         # Send the final frame with the accumulated data
         final_msg = LLMWebSocketResponse(type=WebSocketData.final, data=final_data)
