@@ -1,4 +1,5 @@
-from typing import Literal
+from enum import Enum
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -24,6 +25,18 @@ Choose `end` if you want to keep going with the chat (e. g. if you are waiting f
 
 class LLMAPIResponse(BaseLLMResponse):
     response: str = Field(description="LLM's text response to the input query.")
+
+
+class WebSocketData(Enum):
+    delta = "delta"
+    final = "final"
+
+
+class LLMWebSocketResponse(BaseModel):
+    type: WebSocketData = Field(description="Data type.")
+    data: Any = Field(
+        description="Data returned by the model. Can be a delta or the full response."
+    )
 
 
 LLMResponse = LLMAPIResponse

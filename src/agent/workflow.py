@@ -4,12 +4,13 @@ from typing import cast
 
 from fastapi import HTTPException
 from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.checkpoint.postgres import PostgresSaver  # ⇐ postgres backend
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
-from psycopg import Connection, connect
+from psycopg import AsyncConnection
 from psycopg.rows import DictRow, dict_row
 
 from src.agent.model.chat_interface import ChatInterface
@@ -37,8 +38,8 @@ class Workflow(SystemPromptBuilder):
     tool_evaluator: EvaluateTools
     response_generator: ResponseGenerator
     graph: StateGraph
-    compiled_graph: CompiledStateGraph
-    memory: BaseCheckpointSaver
+    compiled_graph: CompiledStateGraph | None
+    memory: BaseCheckpointSaver | None
     vector_manager: VectorManager
 
     def __init__(self) -> None:
@@ -47,8 +48,19 @@ class Workflow(SystemPromptBuilder):
         self.response_generator = ResponseGenerator()
         self.vector_manager = VectorManager()
         self.error_handler = ErrorHandler()
+
         self.graph = self._load_graph()
-        self.memory = self._load_memory()
+        self.memory = None
+        self.compiled_graph = None
+        self._db_conn: AsyncConnection[DictRow] | None = (
+            None  # keep to close later if you want
+        )
+
+    async def ensure_ready(self) -> None:
+        """Idempotent: prepares memory + compiles graph once."""
+        if self.compiled_graph is not None:
+            return
+        self.memory = await self._load_memory()
         self.compiled_graph = self.graph.compile(checkpointer=self.memory)
 
     def context_incrementer(self, state: GraphState) -> GraphState:
@@ -75,14 +87,36 @@ class Workflow(SystemPromptBuilder):
 
         return state
 
-    def generate_response(self, state: GraphState) -> GraphState:
+    async def generate_response(
+        self,
+        state: GraphState,
+        config: RunnableConfig | None = None,
+    ) -> GraphState:
         state.step_history.append(Steps.generate_response)
+
+        if config is None:
+            raise ValueError("Graph config unavailable.")
+
         try:
             match state.chat_interface:
                 case ChatInterface.api:
                     response = self.response_generator.generate_response(
-                        self.compiled_graph.config,
+                        config,
                         state.messages,
+                    )
+                case ChatInterface.websocket:
+                    # Retrieve websocket from the config you passed earlier
+                    websocket = config.get("configurable", {}).get("websocket")
+
+                    if websocket is None:
+                        raise ValueError("No WebSocket for WebSocket chat interface.")
+
+                    response = (
+                        await self.response_generator.generate_websocket_response(
+                            websocket,
+                            config,
+                            state.messages,
+                        )
                     )
                 # case ChatInterface.whatsapp:
                 #     response = self.response_generator.generate_whatsapp_response(
@@ -101,8 +135,16 @@ class Workflow(SystemPromptBuilder):
 
         return state
 
-    def decide_next_step(self, state: GraphState) -> GraphState:
+    def decide_next_step(
+        self,
+        state: GraphState,
+        config: RunnableConfig | None = None,
+    ) -> GraphState:
         state.step_history.append(Steps.evaluate_tools)
+
+        if config is None:
+            raise ValueError("Graph config unavailable.")
+
         try:
             # Preventing double injection of context and loops
             if self._is_looping(
@@ -118,7 +160,7 @@ class Workflow(SystemPromptBuilder):
             #     raise ValueError("Loop detected: Tool already used.")
 
             response = self.tool_evaluator.decide_next_step(
-                self.compiled_graph.config,
+                config,
                 state.messages,  # Verify need
             )
 
@@ -260,19 +302,19 @@ class Workflow(SystemPromptBuilder):
 
         return graph
 
-    def _load_memory(self) -> BaseCheckpointSaver:
+    async def _load_memory(self) -> BaseCheckpointSaver:
         uri = env.POSTGRES_URI
         if uri:
-            # 1. open a long‑lived connection
-            raw = connect(
+            conn = await AsyncConnection.connect(
                 uri,
                 autocommit=True,
                 prepare_threshold=0,
             )
-            raw.row_factory = dict_row  # type: ignore[assignment]
-            conn = cast(Connection[DictRow], raw)  # 💡 silence Pyright/mypy
-            saver = PostgresSaver(conn)
-            saver.setup()  # one‑time DDL
+            conn.row_factory = dict_row  # type: ignore[assignment]
+            self._db_conn = cast(AsyncConnection[DictRow], conn)
+
+            saver = AsyncPostgresSaver(self._db_conn)
+            await saver.setup()  # one-time DDL
             return saver
 
         # fallback when no PG URI
