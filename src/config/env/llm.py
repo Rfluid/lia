@@ -33,6 +33,18 @@ TOOL_EVALUATOR_LLM_STOP = (
 )
 
 
+TEST_LLM_PROVIDER = LLMProvider(os.getenv("TEST_LLM_PROVIDER") or LLM_PROVIDER)
+TEST_LLM_MODEL_NAME = os.getenv("TEST_LLM_MODEL_NAME") or LLM_MODEL_NAME
+test_llm_api_key = os.getenv("TEST_LLM_API_KEY")
+TEST_LLM_API_KEY = SecretStr(test_llm_api_key) if test_llm_api_key else LLM_API_KEY
+test_llm_temperature = os.getenv("TEST_LLM_TEMPERATURE")
+TEST_LLM_TEMPERATURE = (
+    float(test_llm_temperature) if test_llm_temperature else LLM_TEMPERATURE
+)
+test_llm_stop = os.getenv("TEST_LLM_STOP", None)
+TEST_LLM_STOP = test_llm_stop.split(",") if test_llm_stop else None
+
+
 TEXT_EMBEDDING_PROVIDER = LLMProvider(
     os.getenv("TEXT_EMBEDDING_PROVIDER") or LLM_PROVIDER
 )

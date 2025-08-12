@@ -9,6 +9,7 @@ __pycache__/
 prompts/system.md
 prompts/evaluate_tools.md
 prompts/error_handler.md
+prompts/user.md
 
 # Files
 /files

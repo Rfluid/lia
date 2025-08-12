@@ -10,7 +10,7 @@ from src.agent import start
 logger = logging.getLogger(__name__)
 
 
-def test_start_real_workflow():
+async def test_start_real_workflow():
     logger.info("🧪 Starting workflow test with function `start()`")
 
     # Configuração básica do agente
@@ -23,37 +23,37 @@ def test_start_real_workflow():
     logger.debug(f"📝 Input sent to Workflow (Phase 1): {initial_input}")
 
     try:
-        first_response = start(input=[initial_input], config=config)
+        first_response = await start(input=[initial_input], config=config)
         logger.info("✅ Phase 1 finished successfully.")
-        logger.debug(f"📦 Phase 1 Result: {first_response["messages"][-1]}")
+        logger.debug(f"📦 Phase 1 Result: {first_response['messages'][-1]}")
     except Exception as e:
         logger.error("❌ Error during Phase 1", exc_info=True)
         raise AssertionError(f"An unexpected error occurred in Phase 1: {e}") from e
 
-    assert (
-        first_response["messages"][-1] is not None
-    ), "Expected a non-null result in Phase 1."
+    assert first_response["messages"][-1] is not None, (
+        "Expected a non-null result in Phase 1."
+    )
 
     # Fase 2: pergunta sobre o nome
     follow_up_input = HumanMessage(content="What is my name?")
     logger.debug(f"📝 Input sent to Workflow (Phase 2): {follow_up_input}")
 
     try:
-        second_response = start(input=[follow_up_input], config=config)
+        second_response = await start(input=[follow_up_input], config=config)
         logger.info("✅ Phase 2 finished successfully.")
-        logger.debug(f"📦 Phase 2 Result: {second_response["messages"][-1]}")
+        logger.debug(f"📦 Phase 2 Result: {second_response['messages'][-1]}")
     except Exception as e:
         logger.error("❌ Error during Phase 2", exc_info=True)
         raise AssertionError(f"An unexpected error occurred in Phase 2: {e}") from e
 
-    assert (
-        second_response["messages"][-1] is not None
-    ), "Expected a non-null result in Phase 2."
+    assert second_response["messages"][-1] is not None, (
+        "Expected a non-null result in Phase 2."
+    )
 
     # Verifica se o nome "Ruy" aparece em alguma string do dicionário de resposta
     response_texts = str(second_response["messages"][-1]).lower()
-    assert (
-        "ruy" in response_texts
-    ), "Expected the name 'Ruy' to appear in the second response."
+    assert "ruy" in response_texts, (
+        "Expected the name 'Ruy' to appear in the second response."
+    )
 
     logger.info("🎉 All test phases finished successfully.")

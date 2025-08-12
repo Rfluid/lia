@@ -51,7 +51,6 @@ class ResponseGenerator:
             },
             config=config,
         )
-        logger.info(f"Response: {response}")
         return LLMAPIResponse.model_validate(response)
 
     async def generate_websocket_response(
