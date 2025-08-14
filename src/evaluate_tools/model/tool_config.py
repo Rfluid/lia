@@ -14,4 +14,4 @@ class ToolConfig(BaseModel):
     ] = Field(
         description="The tool that the agent needs to use to retrieve the necessary information."
     )
-    reason: str = Field(description="The reason why the agent needs to use this tool.")
+    # reason: str = Field(description="The reason why the agent needs to use this tool.")

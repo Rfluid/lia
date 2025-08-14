@@ -64,7 +64,7 @@ class ResponseGenerator:
         """
 
         # Accumulate a sensible "final" shape; adjust keys as your client expects
-        final_data: dict[str, Any] = {"text": ""}
+        final_data: dict[str, Any] = {"response": ""}
 
         # Stream deltas
         async for delta in self.chain.astream({"query": query}, config=config):
@@ -73,7 +73,7 @@ class ResponseGenerator:
             # Merge text if present; otherwise just include the latest fields
             txt = payload.get("text")
             if isinstance(txt, str):
-                final_data["text"] += txt
+                final_data["response"] = txt
             else:
                 # Non-text fields—up to you how to merge; here we keep latest
                 for k, v in payload.items():

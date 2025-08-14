@@ -124,7 +124,7 @@ class Workflow(SystemPromptBuilder):
                 #         state.messages,
                 #     )
 
-            state.next_step = Steps(response.next_step)
+            state.next_step = Steps.end  # Steps(response.next_step)
 
             ai_message = AIMessage(content=[response.model_dump()])
             state.response = ai_message
