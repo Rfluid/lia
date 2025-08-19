@@ -34,6 +34,8 @@ class EvaluateTools:
     output_class = ToolConfig
 
     def __init__(self):
+        if PARALLEL_GENERATION:
+            self.output_class = ToolConfigWithResponse
         self.model = load_model(
             env.TOOL_EVALUATOR_LLM_PROVIDER,
             env.TOOL_EVALUATOR_LLM_MODEL_NAME,
@@ -43,8 +45,6 @@ class EvaluateTools:
         )
         self.prompt = self._load_prompt()
         self.chain = self._load_chain()
-        if PARALLEL_GENERATION:
-            self.output_class = ToolConfigWithResponse
 
     def decide_next_step(
         self,
