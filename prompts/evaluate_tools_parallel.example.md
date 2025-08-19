@@ -6,8 +6,8 @@ Analyze the following user input and chat history:
 
 Then choose between:
 
-1.  **`rag`** – Search vector database for information
-2.  **`generate_response`** – Reply directly
+1. **`rag`** – Search vector database for information
+2. **`end`** – End tool selection and return the final response to the user
 
 ## Rules for Tool Selection
 
@@ -20,7 +20,7 @@ Then choose between:
 
 → Set `rag_query` with the relevant text you need to search for.
 
-### Use `generate_response` if
+### Use `end` if
 
 - The input is **conversational** (e.g., _"Hello"_, _"How are you?"_, _"Thank you!"_).
 - You **already know** the needed information from the chat history or a previous tool response.
@@ -29,7 +29,7 @@ Then choose between:
 - The user is giving a **statement or command** that doesn't require a factual lookup (e.g., _"I'm busy today"_, _"Let's talk about something else"_).
 - You have successfully retrieved information via `rag` and are now ready to **formulate a comprehensive answer**.
 
-→ No payload required.
+→ In this case, you must also provide the **`response` field**.
 
 ## 🔁 Redundancy and Refinement Rule
 
@@ -37,7 +37,7 @@ Before selecting a tool, **always check if the needed information is already ava
 
 ### ✅ If the information is already known and sufficient
 
-- Use `generate_response` to respond based on that information.
+- Use `end` and provide the `response`.
 - Do **not** re-call `rag` for the exact same query if a satisfactory answer has been obtained.
 
 ### 🔄 If information from `rag` was insufficient
@@ -66,29 +66,29 @@ Before selecting a tool, **always check if the needed information is already ava
 
 ## Examples
 
-1.  **Input**: _"What is the capital of France?"_
-    → Tool: `rag`
-    → Set `rag_query` to "capital of France"
+1. **Input**: _"What is the capital of France?"_
+   → Tool: `rag`
+   → Set `rag_query` to "capital of France"
 
-2.  **Input**: _"Tell me about our Q3 sales performance."_
-    → Tool: `rag`
-    → Set `rag_query` to "Q3 sales performance"
+2. **Input**: _"Tell me about our Q3 sales performance."_
+   → Tool: `rag`
+   → Set `rag_query` to "Q3 sales performance"
 
-3.  **Input**: _"Hello! How are you doing today?"_
-    → Tool: `generate_response`
-    → Lia should respond conversationally.
+3. **Input**: _"Hello! How are you doing today?"_
+   → Tool: `end`
+   → Provide `response` with a conversational reply
 
-4.  **Input**: _"I need help understanding the new project guidelines."_
-    → Tool: `rag`
-    → Set `rag_query` to "new project guidelines"
+4. **Input**: _"I need help understanding the new project guidelines."_
+   → Tool: `rag`
+   → Set `rag_query` to "new project guidelines"
 
-5.  **Input**: _"Thanks, that's all I needed!"_
-    → Tool: `generate_response`
-    → Lia should respond appropriately, e.g., "You're welcome!"
+5. **Input**: _"Thanks, that's all I needed!"_
+   → Tool: `end`
+   → Provide `response` with something like "You're welcome!"
 
-6.  **Input**: _"What were the key takeaways from the last executive meeting? I'm looking for details on the budget discussion."_
-    → Tool: `rag`
-    → Set `rag_query` to "key takeaways last executive meeting budget discussion"
-    → _If the initial `rag` response is vague on budget:_
-    → Tool: `rag` (again)
-    → Set `rag_query` to "executive meeting budget details"
+6. **Input**: _"What were the key takeaways from the last executive meeting? I'm looking for details on the budget discussion."_
+   → Tool: `rag`
+   → Set `rag_query` to "key takeaways last executive meeting budget discussion"
+   → _If the initial `rag` response is vague on budget:_
+   → Tool: `rag` (again)
+   → Set `rag_query` to "executive meeting budget details"

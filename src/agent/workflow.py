@@ -137,7 +137,7 @@ class Workflow(SystemPromptBuilder):
 
         return state
 
-    def decide_next_step(
+    async def decide_next_step(
         self,
         state: GraphState,
         config: RunnableConfig | None = None,
@@ -161,10 +161,24 @@ class Workflow(SystemPromptBuilder):
             #     state.previous_step = Steps.evaluate_tools
             #     raise ValueError("Loop detected: Tool already used.")
 
-            response = self.tool_evaluator.decide_next_step(
-                config,
-                state.messages,  # Verify need
-            )
+            match state.chat_interface:
+                case ChatInterface.api:
+                    response = self.tool_evaluator.decide_next_step(
+                        config,
+                        state.messages,
+                    )
+                case ChatInterface.websocket:
+                    # Retrieve websocket from the config you passed earlier
+                    websocket = config.get("configurable", {}).get("websocket")
+
+                    if websocket is None:
+                        raise ValueError("No WebSocket for WebSocket chat interface.")
+
+                    response = await self.tool_evaluator.stream_next_step_via_websocket(
+                        websocket,
+                        config,
+                        state.messages,
+                    )
 
             ai_message = SystemMessage(content=[response.model_dump()])
             state.messages = [ai_message]

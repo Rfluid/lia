@@ -19,17 +19,13 @@ class ToolConfig(BaseModel):
     # reason: str = Field(description="The reason why the agent needs to use this tool.")
 
 
-class ToolConfigWithResponse(BaseModel):
+class ToolConfigWithResponse(LLMAPIResponse):
     rag_query: str | None = Field(
         default=None,
         description="The query to be sent to the RAG tool. Used to retrieve information from the RAG tool.",
     )
     tool: Literal["rag", "end"] = Field(
         description="The tool that the agent needs to use to retrieve the necessary information or send message back do user (`end`)."
-    )
-    response: LLMAPIResponse | None = Field(
-        default=None,
-        description="The response to send to user. Required if next step is `end`.",
     )
 
 

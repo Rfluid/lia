@@ -6,7 +6,7 @@ services:
         env_file: .env
         environment:
             POSTGRES_URI: postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
-            # MILVUS_URI: http://milvus:19530 # <<<<<< explicit overwrite for lia service
+            MILVUS_URI: http://milvus:19530 # <<<<<< explicit overwrite for lia service
             DATA_DIR: /app/data
             PROMPTS_DIR: /app/prompts
             API_URL: http://localhost:8000

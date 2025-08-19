@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any
 
@@ -18,6 +19,12 @@ from src.evaluate_tools.model.tool_config import (
 )
 from src.generate_response.model.response import WebSocketData
 from src.llm.service import load_model
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,  # or DEBUG
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 
 
 class EvaluateTools:
@@ -80,10 +87,15 @@ class EvaluateTools:
                     if k != "text":
                         final_data[k] = v
 
+            tool = payload.get("tool")
+            if tool is not None and tool != "end":
+                continue
+
             # Send the delta frame as JSON (DICT) — not a JSON string
-            json_dump = ToolConfigWebSocketResponse(
+            tool_config = ToolConfigWebSocketResponse(
                 type=WebSocketData.delta, data=payload
-            ).model_dump(mode="json")
+            )
+            json_dump = tool_config.model_dump(mode="json")
             await websocket.send_json(json_dump)
 
         # Send the final frame with the accumulated data
@@ -99,7 +111,10 @@ class EvaluateTools:
         root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         prompt_dir = os.path.join(root_dir, "prompts")
         primary_path = os.path.join(prompt_dir, "evaluate_tools.md")
-        fallback_path = os.path.join(prompt_dir, "evaluate_tools.example.md")
+        fallback_file = "evaluate_tools.example.md"
+        if PARALLEL_GENERATION:
+            fallback_file = "evaluate_tools_parallel.example.md"
+        fallback_path = os.path.join(prompt_dir, fallback_file)
 
         if os.path.isfile(primary_path):
             with open(primary_path, encoding="utf-8") as f:
@@ -109,7 +124,7 @@ class EvaluateTools:
                 return f.read()
         else:
             raise FileNotFoundError(
-                "Neither prompts/evaluate_tools.md nor prompts/evaluate_tools.example.md found."
+                f"Neither prompts/evaluate_tools.md nor prompts/${fallback_file} found."
             )
 
     def _load_chain(self):
