@@ -55,3 +55,9 @@ text_embedding_api_key = os.getenv("TEXT_EMBEDDING_API_KEY")
 TEXT_EMBEDDING_API_KEY = (
     SecretStr(text_embedding_api_key) if text_embedding_api_key else LLM_API_KEY
 )
+
+PARALLEL_GENERATION = bool(
+    os.getenv(
+        "PARALLEL_GENERATION",
+    )
+)

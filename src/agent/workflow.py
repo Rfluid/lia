@@ -1,5 +1,6 @@
 import logging
 from collections import Counter
+from collections.abc import Hashable
 from typing import cast
 
 from fastapi import HTTPException
@@ -18,6 +19,7 @@ from src.agent.model.graph_state import GraphState
 from src.agent.model.steps import Steps
 from src.agent.model.tool_data import ToolData
 from src.config import env
+from src.config.env.llm import PARALLEL_GENERATION
 from src.error_handler import ErrorHandler
 from src.evaluate_tools.main import EvaluateTools
 from src.generate_response import ResponseGenerator
@@ -135,7 +137,7 @@ class Workflow(SystemPromptBuilder):
 
         return state
 
-    def decide_next_step(
+    async def decide_next_step(
         self,
         state: GraphState,
         config: RunnableConfig | None = None,
@@ -159,13 +161,29 @@ class Workflow(SystemPromptBuilder):
             #     state.previous_step = Steps.evaluate_tools
             #     raise ValueError("Loop detected: Tool already used.")
 
-            response = self.tool_evaluator.decide_next_step(
-                config,
-                state.messages,  # Verify need
-            )
+            match state.chat_interface:
+                case ChatInterface.api:
+                    response = self.tool_evaluator.decide_next_step(
+                        config,
+                        state.messages,
+                    )
+                case ChatInterface.websocket:
+                    # Retrieve websocket from the config you passed earlier
+                    websocket = config.get("configurable", {}).get("websocket")
+
+                    if websocket is None:
+                        raise ValueError("No WebSocket for WebSocket chat interface.")
+
+                    response = await self.tool_evaluator.stream_next_step_via_websocket(
+                        websocket,
+                        config,
+                        state.messages,
+                    )
 
             ai_message = SystemMessage(content=[response.model_dump()])
             state.messages = [ai_message]
+            if response.tool == "end":
+                state.response = ai_message
 
             state.next_step = Steps(response.tool)
             rag_query = response.rag_query
@@ -265,15 +283,26 @@ class Workflow(SystemPromptBuilder):
             },
         )
         graph.add_edge(str(Steps.context_builder), str(Steps.evaluate_tools))
+
+        # Setting conditionally the `evaluate_tools` edges considering the parallel runtime
+        evaluate_tools_edges: dict[Hashable, str] = {
+            Steps.rag: str(Steps.rag),
+            Steps.error_handler: str(Steps.error_handler),
+        }
+        if not PARALLEL_GENERATION:
+            # Generate the response possibly in the next step
+            generate_response: Hashable = Steps.generate_response
+            evaluate_tools_edges[generate_response] = str(Steps.generate_response)
+        else:
+            # Generate the response with the tool decision
+            end: Hashable = Steps.end
+            evaluate_tools_edges[end] = END
         graph.add_conditional_edges(
             str(Steps.evaluate_tools),
             lambda x: x.next_step,
-            {
-                Steps.rag: str(Steps.rag),
-                Steps.generate_response: str(Steps.generate_response),
-                Steps.error_handler: str(Steps.error_handler),
-            },
+            evaluate_tools_edges,
         )
+
         graph.add_conditional_edges(
             str(Steps.rag),
             lambda x: x.next_step,

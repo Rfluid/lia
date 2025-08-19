@@ -7,8 +7,8 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig, RunnableSerializable
-from pydantic import BaseModel
 
+from src.common import normalize_delta
 from src.config import env
 from src.generate_response.model.response import (
     LLMAPIResponse,
@@ -68,7 +68,7 @@ class ResponseGenerator:
 
         # Stream deltas
         async for delta in self.chain.astream({"query": query}, config=config):
-            payload = _normalize_delta(delta)
+            payload = normalize_delta(delta)
 
             # Merge text if present; otherwise just include the latest fields
             txt = payload.get("text")
@@ -110,15 +110,3 @@ generate a response to the user considering the data retrieved from the tools.
         )
         chain = prompt | self.model | parser
         return chain
-
-
-def _normalize_delta(delta: Any) -> dict[str, Any]:
-    # Turn whatever the chain yields into a dict we can JSON-encode
-    if isinstance(delta, BaseModel):
-        return delta.model_dump()
-    if isinstance(delta, dict):
-        return delta
-    if delta | (bytes, bytearray):
-        return {"text": delta.decode("utf-8", errors="replace")}
-    # strings, numbers, etc.
-    return {"text": str(delta)}
