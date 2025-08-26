@@ -53,6 +53,8 @@ async def send_message_ws(
                 req.max_retries,
                 req.loop_threshold,
                 req.top_k,
+                summarize_message_window=req.summarize_message_window,
+                summarize_message_keep=req.summarize_message_keep,
             )
 
             message = agent_response["response"]
@@ -90,6 +92,8 @@ async def send_chat_message(
             req.max_retries,
             req.loop_threshold,
             req.top_k,
+            summarize_message_window=req.summarize_message_window,
+            summarize_message_keep=req.summarize_message_keep,
         )
 
         message = agent_response["response"]
@@ -126,6 +130,8 @@ async def send_system_instructions(
             "context_incrementer",
             req.chat_interface,
             req.top_k,
+            summarize_message_window=req.summarize_message_window,
+            summarize_message_keep=req.summarize_message_keep,
         )
 
         return agent_response

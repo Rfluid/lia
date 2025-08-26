@@ -31,6 +31,18 @@ class GraphState(BaseModel):
     current_retries: int = 0
     max_retries: int = 0
 
+    summarize_message_window: int = Field(
+        default=4,
+        description="""Number of messages to summarize at once (the "window"),
+        taken from the block immediately before the KEEP tail. Summarization triggers
+        ONLY when the window is FULL (i.e., len(messages) >= SUMMARIZE_MESSAGE_KEEP + SUMMARIZE_MESSAGE_WINDOW).""",
+    )
+    summarize_message_keep: int = Field(
+        default=6,
+        description="""Number of most recent messages to always keep verbatim (the "keep tail").
+        Must be a non-negative integer. These messages are never summarized.""",
+    )
+
     top_k: int = Field(
         # default=5,
         description="The number of top k results to return.",

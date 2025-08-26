@@ -23,6 +23,7 @@ from src.config.env.llm import PARALLEL_GENERATION
 from src.error_handler import ErrorHandler
 from src.evaluate_tools.main import EvaluateTools
 from src.generate_response import ResponseGenerator
+from src.summarize.main import Summarizer
 from src.system_prompt.main import SystemPromptBuilder
 from src.vector_manager.main import VectorManager
 
@@ -43,6 +44,7 @@ class Workflow(SystemPromptBuilder):
     compiled_graph: CompiledStateGraph | None
     memory: BaseCheckpointSaver | None
     vector_manager: VectorManager
+    summarizer: Summarizer
 
     def __init__(self) -> None:
         super().__init__()
@@ -50,6 +52,7 @@ class Workflow(SystemPromptBuilder):
         self.response_generator = ResponseGenerator()
         self.vector_manager = VectorManager()
         self.error_handler = ErrorHandler()
+        self.summarizer = Summarizer()
 
         self.graph = self._load_graph()
         self.memory = None
@@ -86,6 +89,24 @@ class Workflow(SystemPromptBuilder):
 
         agent_context = SystemMessage(content=self.prompt)
         state.messages = [agent_context]
+
+        return state
+
+    async def generate_summary(
+        self,
+        state: GraphState,
+        config: RunnableConfig | None = None,
+    ) -> GraphState:
+        state.step_history.append(Steps.summarize)
+
+        if config is None:
+            raise ValueError("Graph config unavailable.")
+
+        try:
+            self.summarizer.summarize_conditionally(state, config)
+        except Exception as e:
+            state.error = str(e)
+            state.next_step = Steps.error_handler
 
         return state
 
@@ -203,14 +224,10 @@ class Workflow(SystemPromptBuilder):
             if not isinstance(query, str):
                 raise ValueError("Expected the query to be a string.")
 
-            logger.info(f"Running RAG retrieval for query: {query}")
-
             # Retrieve relevant documents from the vectorstore
             retrieved_docs = self.vector_manager.retrieve(
                 query=query, top_k=state.top_k
             )
-
-            logger.info(f"Retrieved {len(retrieved_docs)} documents.")
 
             # Create a new SystemMessage with the retrieved documents
             documents_message = SystemMessage(
@@ -237,12 +254,10 @@ class Workflow(SystemPromptBuilder):
 
     def handle_error(self, state: GraphState) -> GraphState:
         state.step_history.append(Steps.error_handler)
-        logging.info("entered error handling")
         if state.error is None:
             raise ValueError("No error to handle.")
 
         if state.current_retries >= state.max_retries:
-            logging.exception("current retries exceeded")
             raise HTTPException(status_code=500, detail=state.error)
 
         state.current_retries += 1
@@ -269,6 +284,7 @@ class Workflow(SystemPromptBuilder):
         graph.add_node(str(Steps.context_builder), self.context_builder)
         graph.add_node(str(Steps.evaluate_tools), self.decide_next_step)
         graph.add_node(str(Steps.generate_response), self.generate_response)
+        graph.add_node(str(Steps.summarize), self.generate_summary)
         graph.add_node(str(Steps.rag), self.rag)
         graph.add_node(str(Steps.error_handler), self.handle_error)
 
@@ -296,7 +312,7 @@ class Workflow(SystemPromptBuilder):
         else:
             # Generate the response with the tool decision
             end: Hashable = Steps.end
-            evaluate_tools_edges[end] = END
+            evaluate_tools_edges[end] = str(Steps.summarize)
         graph.add_conditional_edges(
             str(Steps.evaluate_tools),
             lambda x: x.next_step,
@@ -315,10 +331,11 @@ class Workflow(SystemPromptBuilder):
             str(Steps.generate_response),
             lambda x: x.next_step,
             {
-                Steps.end: END,
+                Steps.end: str(Steps.summarize),
                 Steps.error_handler: str(Steps.error_handler),
             },
         )
+        graph.add_edge(str(Steps.summarize), END)
 
         graph.add_conditional_edges(
             str(Steps.error_handler),
