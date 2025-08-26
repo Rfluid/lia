@@ -21,6 +21,11 @@ logging.basicConfig(
 )
 
 
+def _is_system(m: BaseMessage) -> bool:
+    is_instance = isinstance(m, SystemMessage)
+    return is_instance
+
+
 def _ensure_ids(msgs: list[BaseMessage]) -> None:
     for m in msgs:
         if not getattr(m, "id", None):
@@ -62,35 +67,60 @@ class Summarizer:
         if pre_keep < window:
             return  # don’t summarize until there’s enough history
 
-        # 1) Split: everything before the keep-tail will be summarized
-        to_summarize = state.messages[:pre_keep]
+        # 1) Split: everything before the keep-tail will be summarized (subject to the flag)
+        pre_region = state.messages[:pre_keep]
         keep_tail = state.messages[pre_keep:]
 
-        # 2) Make sure deletions will match
+        # 2) Ensure every message has an id (so RemoveMessage can match)
         _ensure_ids(state.messages)
 
-        # 3) Produce the summary text/object
+        # 3) Partition the pre-region depending on summarize_system_messages
+        if getattr(state, "summarize_system_messages", False):
+            system_head: list[BaseMessage] = []
+            to_summarize: list[BaseMessage] = pre_region
+        else:
+            system_head = [m for m in pre_region if _is_system(m)]
+            to_summarize = [m for m in pre_region if not _is_system(m)]
+
+        # If there’s nothing to summarize (e.g., only system messages), skip work
+        if not to_summarize:
+            return
+
+        # 4) Produce the summary text/object ONLY from the chosen set
         summary = self.summarize(to_summarize, config)
 
-        # 4) Build a single reducer update:
-        #    - remove ALL messages (so we can control final order)
-        #    - append summary (as a new SystemMessage)
-        #    - re-append the keep tail
+        # 5) Build a single reducer update:
+        #    - remove ALL current messages (so we control final order deterministically)
         ops: list[BaseMessage] = [RemoveMessage(id=m.id) for m in state.messages]  # type: ignore[assignment]
 
-        summary_msg = SystemMessage(
-            id=str(uuid4()),
-            # prefer plain string content unless your stack expects content blocks
-            content=summary.model_dump_json(),  # or summary.text
+        #    - re-add preserved system messages (fresh ids to avoid clashes with RemoveMessage)
+        system_head_fresh = []
+        for m in system_head:
+            mc = m.copy(deep=True)
+            mc.id = str(uuid4())
+            system_head_fresh.append(mc)
+
+        #    - append synthetic summary as a SystemMessage (fresh id)
+        # summary_msg = AIMessage(
+        #     content=summary.summary,  # or summary.text if you prefer plain text
+        # )
+        summary_msg = BaseMessage(
+            content=summary.summary,  # or summary.text if you prefer plain text
+            type="summary",
         )
 
-        # re-add keep messages after the summary; clone to avoid id reuse
-        keep_tail_fresh = [_clone_with_new_id(m) for m in keep_tail]
+        #    - re-add keep-tail (fresh ids)
+        keep_tail_fresh = []
+        for m in keep_tail:
+            mc = m.copy(deep=True)
+            mc.id = str(uuid4())
+            keep_tail_fresh.append(mc)
 
+        ops.extend(system_head_fresh)
         ops.append(summary_msg)
         ops.extend(keep_tail_fresh)
 
-        # 5) One assignment so add_messages applies the batch atomically
+        # 6) One assignment so downstream reducers see a single atomic rewrite
         state.messages = ops
 
     def summarize(

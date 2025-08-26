@@ -45,7 +45,7 @@ async def send_message_ws(
                 ),
             ]
 
-            agent_response = await start(
+            await start(
                 input,
                 config,
                 "response_generator",
@@ -55,11 +55,8 @@ async def send_message_ws(
                 req.top_k,
                 summarize_message_window=req.summarize_message_window,
                 summarize_message_keep=req.summarize_message_keep,
+                summarize_system_messages=req.summarize_system_messages,
             )
-
-            message = agent_response["response"]
-
-            print(f"Generated WebSocket message: {message}")
     except WebSocketDisconnect:
         logger.info("Client disconnected.")
     except Exception as e:
@@ -94,6 +91,7 @@ async def send_chat_message(
             req.top_k,
             summarize_message_window=req.summarize_message_window,
             summarize_message_keep=req.summarize_message_keep,
+            summarize_system_messages=req.summarize_system_messages,
         )
 
         message = agent_response["response"]
@@ -132,6 +130,7 @@ async def send_system_instructions(
             req.top_k,
             summarize_message_window=req.summarize_message_window,
             summarize_message_keep=req.summarize_message_keep,
+            summarize_system_messages=req.summarize_system_messages,
         )
 
         return agent_response

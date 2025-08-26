@@ -4,7 +4,7 @@ from collections.abc import Hashable
 from typing import cast
 
 from fastapi import HTTPException
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
 from langchain_core.runnables.config import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
@@ -22,6 +22,9 @@ from src.config import env
 from src.config.env.llm import PARALLEL_GENERATION
 from src.error_handler import ErrorHandler
 from src.evaluate_tools.main import EvaluateTools
+from src.evaluate_tools.model.tool_config import (
+    ToolConfigWithResponse,
+)
 from src.generate_response import ResponseGenerator
 from src.summarize.main import Summarizer
 from src.system_prompt.main import SystemPromptBuilder
@@ -201,10 +204,16 @@ class Workflow(SystemPromptBuilder):
                         state.messages,
                     )
 
-            ai_message = SystemMessage(content=[response.model_dump()])
-            state.messages = [ai_message]
-            if response.tool == "end":
-                state.response = ai_message
+            if isinstance(response, ToolConfigWithResponse):
+                ai_message = AIMessage(content=[response.model_dump()])
+                state.messages = [ai_message]
+                if response.tool == "end":
+                    state.response = ai_message
+            else:
+                reasoning = BaseMessage(
+                    type="reasoning", content=[response.model_dump()]
+                )
+                state.messages = [reasoning]
 
             state.next_step = Steps(response.tool)
             rag_query = response.rag_query
@@ -229,8 +238,8 @@ class Workflow(SystemPromptBuilder):
                 query=query, top_k=state.top_k
             )
 
-            # Create a new SystemMessage with the retrieved documents
-            documents_message = SystemMessage(
+            # Create a new rag_data message with the retrieved documents
+            documents_message = BaseMessage(
                 content=[
                     str(
                         ToolData(
@@ -238,7 +247,8 @@ class Workflow(SystemPromptBuilder):
                             label=f"Knowledge base documents retrieved for: '{query}'",
                         )
                     )
-                ]
+                ],
+                type="rag_data",
             )
 
             # Update the messages in state

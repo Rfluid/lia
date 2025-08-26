@@ -42,6 +42,12 @@ class GraphState(BaseModel):
         description="""Number of most recent messages to always keep verbatim (the "keep tail").
         Must be a non-negative integer. These messages are never summarized.""",
     )
+    summarize_system_messages: bool = Field(
+        default=False,
+        description="""Whether system messages will enter the summarize.
+If False, this will lead to a summarized history like
+[system instruction messages, summary, keep messages].""",
+    )
 
     top_k: int = Field(
         # default=5,

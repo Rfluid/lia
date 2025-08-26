@@ -22,6 +22,7 @@ async def start(
     top_k: int = 5,
     summarize_message_window: int = 4,
     summarize_message_keep: int = 6,
+    summarize_system_messages: bool = False,
 ):
     """
     Start the agent with the given input.
@@ -38,6 +39,7 @@ async def start(
         top_k=top_k,
         summarize_message_window=summarize_message_window,
         summarize_message_keep=summarize_message_keep,
+        summarize_system_messages=summarize_system_messages,
     )
 
     result = await workflow.compiled_graph.ainvoke(initial_state.model_dump(), config)
