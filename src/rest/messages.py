@@ -45,7 +45,7 @@ async def send_message_ws(
                 ),
             ]
 
-            agent_response = await start(
+            await start(
                 input,
                 config,
                 "response_generator",
@@ -57,10 +57,6 @@ async def send_message_ws(
                 summarize_message_keep=req.summarize_message_keep,
                 summarize_system_messages=req.summarize_system_messages,
             )
-
-            message = agent_response["response"]
-
-            print(f"Generated WebSocket message: {message}")
     except WebSocketDisconnect:
         logger.info("Client disconnected.")
     except Exception as e:
