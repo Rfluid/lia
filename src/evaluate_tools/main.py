@@ -87,10 +87,6 @@ class EvaluateTools:
                     if k != "text":
                         final_data[k] = v
 
-            tool = payload.get("tool")
-            if tool is not None and tool != "end":
-                continue
-
             # Send the delta frame as JSON (DICT) — not a JSON string
             tool_config = ToolConfigWebSocketResponse(
                 type=WebSocketData.delta, data=payload
@@ -99,13 +95,15 @@ class EvaluateTools:
             await websocket.send_json(json_dump)
 
         # Send the final frame with the accumulated data
-        final_msg = ToolConfigWebSocketResponse(
-            type=WebSocketData.final, data=final_data
-        )
-        await websocket.send_json(final_msg.model_dump(mode="json"))
+        final_tool_config = ToolConfigWithResponse.model_validate(final_data)
+        if final_tool_config.tool == "end":
+            final_msg = ToolConfigWebSocketResponse(
+                type=WebSocketData.final, data=final_tool_config
+            )
+            await websocket.send_json(final_msg.model_dump(mode="json"))
 
         # Return an API response validated from the final accumulated data
-        return ToolConfigWithResponse.model_validate(final_data)
+        return final_tool_config
 
     def _load_prompt(self) -> str:
         root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
