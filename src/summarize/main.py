@@ -34,7 +34,7 @@ def _ensure_ids(msgs: list[BaseMessage]) -> None:
 
 
 def _clone_with_new_id(m: BaseMessage) -> BaseMessage:
-    mc = m.copy(deep=True)  # pydantic copy
+    mc = m.model_copy(deep=True)  # pydantic copy
     mc.id = str(uuid4())
     return mc
 
@@ -96,7 +96,7 @@ class Summarizer:
         #    - re-add preserved system messages (fresh ids to avoid clashes with RemoveMessage)
         system_head_fresh = []
         for m in system_head:
-            mc = m.copy(deep=True)
+            mc = m.model_copy(deep=True)
             mc.id = str(uuid4())
             system_head_fresh.append(mc)
 
@@ -112,7 +112,7 @@ class Summarizer:
         #    - re-add keep-tail (fresh ids)
         keep_tail_fresh = []
         for m in keep_tail:
-            mc = m.copy(deep=True)
+            mc = m.model_copy(deep=True)
             mc.id = str(uuid4())
             keep_tail_fresh.append(mc)
 
