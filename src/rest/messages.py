@@ -11,7 +11,7 @@ from langchain_core.runnables import RunnableConfig
 
 from src.agent import start
 from src.agent.model.graph_state import GraphState
-from src.agent.model.input import InputRequest
+from src.agent.model.input import Input, InputRequest
 from src.generate_response.model.response import LLMResponse
 
 logger = logging.getLogger(__name__)
@@ -35,9 +35,11 @@ async def send_message_ws(
             input: list[BaseMessage] = [
                 HumanMessage(
                     content=[
-                        {
-                            "data": req.data,
-                        }
+                        Input.model_validate(
+                            {
+                                "data": req.data,
+                            }
+                        ).model_dump()
                     ]
                 ),
             ]
@@ -69,9 +71,11 @@ async def send_chat_message(
         input: list[BaseMessage] = [
             HumanMessage(
                 content=[
-                    {
-                        "data": req.data,
-                    }
+                    Input.model_validate(
+                        {
+                            "data": req.data,
+                        }
+                    ).model_dump()
                 ]
             ),
         ]
@@ -108,9 +112,11 @@ async def send_system_instructions(
         input: list[BaseMessage] = [
             SystemMessage(
                 content=[
-                    {
-                        "data": req.data,
-                    }
+                    Input.model_validate(
+                        {
+                            "data": req.data,
+                        }
+                    ).model_dump()
                 ]
             ),
         ]
