@@ -4,6 +4,18 @@ from pydantic import SecretStr
 
 from src.llm.model.llm_provider import LLMProvider
 
+
+# Function to parse kwargs from environment variables
+def parse_kwargs(prefix: str) -> dict:
+    kwargs = {}
+    for key, value in os.environ.items():
+        if key.startswith(prefix):
+            # Extract the part after the prefix to use as the kwargs key
+            kwarg_key = key[len(prefix) :].lower()  # Normalize the key to lowercase
+            kwargs[kwarg_key] = value
+    return kwargs
+
+
 # LLM configuration
 LLM_PROVIDER = LLMProvider(os.getenv("LLM_PROVIDER", "ollama"))
 LLM_MODEL_NAME = os.getenv("LLM_MODEL_NAME", "mistral")
@@ -11,6 +23,13 @@ LLM_API_KEY = SecretStr(os.getenv("LLM_API_KEY") or "")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0"))
 llm_stop = os.getenv("LLM_STOP", None)
 LLM_STOP = llm_stop.split(",") if llm_stop else None
+
+# Parse kwargs for different configurations
+LLM_KWARGS = parse_kwargs("LLM_ARG_")
+TOOL_EVALUATOR_LLM_KWARGS = parse_kwargs("TOOL_EVALUATOR_LLM_ARG_")
+TEXT_EMBEDDING_KWARGS = parse_kwargs("TEXT_EMBEDDING_ARG_")
+SUMMARIZE_LLM_KWARGS = parse_kwargs("SUMMARIZE_LLM_ARG_")
+
 TOOL_EVALUATOR_LLM_PROVIDER = LLMProvider(
     os.getenv("TOOL_EVALUATOR_LLM_PROVIDER") or LLM_PROVIDER
 )

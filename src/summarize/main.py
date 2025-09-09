@@ -51,6 +51,7 @@ class Summarizer:
             env.SUMMARIZE_LLM_API_KEY,
             model_stop=env.SUMMARIZE_LLM_STOP,
             model_temperature=env.SUMMARIZE_LLM_TEMPERATURE,
+            **env.SUMMARIZE_LLM_KWARGS,
         )
         # make sure prompt is loaded before building the chain
         self.prompt = self._load_prompt()

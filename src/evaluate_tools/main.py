@@ -42,6 +42,7 @@ class EvaluateTools:
             env.TOOL_EVALUATOR_LLM_API_KEY,
             model_stop=env.TOOL_EVALUATOR_LLM_STOP,
             model_temperature=env.TOOL_EVALUATOR_LLM_TEMPERATURE,
+            **env.TOOL_EVALUATOR_LLM_KWARGS,
         )
         self.prompt = self._load_prompt()
         self.chain = self._load_chain()
