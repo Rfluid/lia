@@ -18,6 +18,7 @@ def load_model(
     model_temperature: float = 0,
     model_timeout: int = 0,
     model_stop: list[str] | None = None,
+    **kwargs,  # Add this line to accept additional keyword arguments
 ) -> BaseLLM | BaseChatModel:
     match provider:
         case LLMProvider.openai:
@@ -26,6 +27,7 @@ def load_model(
                 api_key=api_key,
                 temperature=model_temperature,
                 timeout=model_timeout if model_timeout > 0 else None,
+                **kwargs,  # Pass kwargs to the ChatOpenAI constructor
             )
 
         case LLMProvider.anthropic:
@@ -35,6 +37,7 @@ def load_model(
                 timeout=model_timeout if model_timeout > 0 else None,
                 stop=model_stop,
                 temperature=model_temperature,
+                **kwargs,  # Pass kwargs to the ChatAnthropic constructor
             )
 
         case LLMProvider.cohere:
@@ -44,6 +47,7 @@ def load_model(
                 temperature=model_temperature,
                 stop=model_stop,
                 timeout_seconds=model_timeout if model_timeout > 0 else None,
+                **kwargs,  # Pass kwargs to the ChatCohere constructor
             )
 
         case LLMProvider.ollama:
@@ -51,6 +55,7 @@ def load_model(
                 model=model_name,
                 temperature=model_temperature,
                 stop=model_stop,
+                **kwargs,  # Pass kwargs to the OllamaLLM constructor
             )
 
         case LLMProvider.gemini:
@@ -59,6 +64,7 @@ def load_model(
                 google_api_key=api_key,
                 temperature=model_temperature,
                 timeout=model_timeout if model_timeout > 0 else None,
+                **kwargs,  # Pass kwargs to the ChatGoogleGenerativeAI constructor
             )
 
         # case LLMProvider.huggingface:
