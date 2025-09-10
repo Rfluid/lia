@@ -2,7 +2,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from src.generate_response.model.response import LLMAPIResponse, WebSocketData
+from src.generate_response.model.response import (
+    BaseLLMResponse,
+    WebSocketData,
+)
 
 
 class ToolConfig(BaseModel):
@@ -19,7 +22,10 @@ class ToolConfig(BaseModel):
     # reason: str = Field(description="The reason why the agent needs to use this tool.")
 
 
-class ToolConfigWithResponse(LLMAPIResponse):
+class ToolConfigWithResponse(BaseLLMResponse):
+    response: str | None = Field(
+        default=None, description="LLM's text response to the input query."
+    )
     rag_query: str | None = Field(
         default=None,
         description="The query to be sent to the RAG tool. Used to retrieve information from the RAG tool.",
