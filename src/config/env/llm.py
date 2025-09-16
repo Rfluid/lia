@@ -75,10 +75,12 @@ TEXT_EMBEDDING_API_KEY = (
     SecretStr(text_embedding_api_key) if text_embedding_api_key else LLM_API_KEY
 )
 
-PARALLEL_GENERATION = bool(
+PARALLEL_GENERATION = (
     os.getenv(
         "PARALLEL_GENERATION",
-    )
+        "False",
+    ).lower()
+    == "true"
 )
 
 SUMMARIZE_LLM_PROVIDER = LLMProvider(
