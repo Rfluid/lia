@@ -15,7 +15,9 @@ from src.config.env.llm import PARALLEL_GENERATION
 from src.evaluate_tools.model import ToolConfig
 from src.evaluate_tools.model.tool_config import (
     ToolConfigWebSocketResponse,
+    ToolConfigWithoutRAG,
     ToolConfigWithResponse,
+    ToolConfigWithResponseWithoutRAG,
 )
 from src.generate_response.model.response import WebSocketData
 from src.llm.service import load_model
@@ -35,7 +37,13 @@ class EvaluateTools:
 
     def __init__(self):
         if PARALLEL_GENERATION:
-            self.output_class = ToolConfigWithResponse
+            self.output_class = (
+                ToolConfigWithResponse
+                if env.RAG_AVAILABLE
+                else ToolConfigWithResponseWithoutRAG
+            )
+        elif not env.RAG_AVAILABLE:
+            self.output_class = ToolConfigWithoutRAG
         self.model = load_model(
             env.TOOL_EVALUATOR_LLM_PROVIDER,
             env.TOOL_EVALUATOR_LLM_MODEL_NAME,
@@ -51,7 +59,12 @@ class EvaluateTools:
         self,
         config: RunnableConfig | None = None,
         query: list | None = None,
-    ) -> ToolConfig | ToolConfigWithResponse:
+    ) -> (
+        ToolConfig
+        | ToolConfigWithResponse
+        | ToolConfigWithoutRAG
+        | ToolConfigWithResponseWithoutRAG
+    ):
         response = self.chain.invoke(
             {
                 "query": query,
@@ -66,7 +79,12 @@ class EvaluateTools:
         websocket: WebSocket,
         config: RunnableConfig | None = None,
         query: list | None = None,
-    ) -> ToolConfig | ToolConfigWithResponse:
+    ) -> (
+        ToolConfig
+        | ToolConfigWithResponse
+        | ToolConfigWithoutRAG
+        | ToolConfigWithResponseWithoutRAG
+    ):
         """
         Streams LLM response deltas and final message via websocket.
         """

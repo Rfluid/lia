@@ -8,6 +8,12 @@ from src.generate_response.model.response import (
 )
 
 
+class ToolConfigWithoutRAG(BaseModel):
+    tool: Literal["generate_response",] = Field(
+        description="The tool that the agent needs to use to retrieve the necessary information."
+    )
+
+
 class ToolConfig(BaseModel):
     rag_query: str | None = Field(
         default=None,
@@ -20,6 +26,15 @@ class ToolConfig(BaseModel):
         description="The tool that the agent needs to use to retrieve the necessary information."
     )
     # reason: str = Field(description="The reason why the agent needs to use this tool.")
+
+
+class ToolConfigWithResponseWithoutRAG(BaseLLMResponse):
+    response: str | None = Field(
+        default=None, description="LLM's text response to the input query."
+    )
+    tool: Literal["end"] = Field(
+        description="The tool that the agent needs to use to retrieve the necessary information or send message back do user (`end`)."
+    )
 
 
 class ToolConfigWithResponse(BaseLLMResponse):
