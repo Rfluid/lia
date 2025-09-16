@@ -7,5 +7,6 @@ class LLMProvider(Enum):
     cohere = "cohere"
     ollama = "ollama"
     gemini = "gemini"
+    vertex = "vertex"
     # huggingface = "huggingface"
     # llamacpp = "llamacpp"
