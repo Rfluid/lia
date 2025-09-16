@@ -71,9 +71,8 @@ def load_model(
         case LLMProvider.vertex:
             return VertexAI(
                 model=model_name,
-                google_api_key=api_key,
-                temperature=model_temperature,
-                timeout=model_timeout if model_timeout > 0 else None,
+                api_key=api_key,
+                model_temperature=model_temperature,
                 **kwargs,  # Pass kwargs to the VertexAI constructor
             )
 
