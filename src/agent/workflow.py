@@ -20,9 +20,11 @@ from src.agent.model.steps import Steps
 from src.agent.model.tool_data import ToolData
 from src.config import env
 from src.config.env.llm import PARALLEL_GENERATION
+from src.config.env.vector import RAG_AVAILABLE
 from src.error_handler import ErrorHandler
 from src.evaluate_tools.main import EvaluateTools
 from src.evaluate_tools.model.tool_config import (
+    ToolConfig,
     ToolConfigWithResponse,
 )
 from src.generate_response import ResponseGenerator
@@ -216,10 +218,13 @@ class Workflow(SystemPromptBuilder):
                 state.messages = [reasoning]
 
             state.next_step = Steps(response.tool)
-            rag_query = response.rag_query
-            if rag_query is not None:
-                state.tool_payloads.rag_query = rag_query
 
+            if isinstance(response, ToolConfig) or isinstance(
+                response, ToolConfigWithResponse
+            ):
+                rag_query = response.rag_query
+                if rag_query is not None:
+                    state.tool_payloads.rag_query = rag_query
         except Exception as e:
             state.error = str(e)
             state.next_step = Steps.error_handler
@@ -312,9 +317,11 @@ class Workflow(SystemPromptBuilder):
 
         # Setting conditionally the `evaluate_tools` edges considering the parallel runtime
         evaluate_tools_edges: dict[Hashable, str] = {
-            Steps.rag: str(Steps.rag),
             Steps.error_handler: str(Steps.error_handler),
         }
+        if env.RAG_AVAILABLE:
+            rag: Hashable = Steps.rag
+            evaluate_tools_edges[rag] = str(Steps.rag)
         if not PARALLEL_GENERATION:
             # Generate the response possibly in the next step
             generate_response: Hashable = Steps.generate_response
@@ -329,14 +336,16 @@ class Workflow(SystemPromptBuilder):
             evaluate_tools_edges,
         )
 
-        graph.add_conditional_edges(
-            str(Steps.rag),
-            lambda x: x.next_step,
-            {
-                Steps.evaluate_tools: str(Steps.evaluate_tools),
-                Steps.error_handler: str(Steps.error_handler),
-            },
-        )
+        if RAG_AVAILABLE:
+            graph.add_conditional_edges(
+                str(Steps.rag),
+                lambda x: x.next_step,
+                {
+                    Steps.evaluate_tools: str(Steps.evaluate_tools),
+                    Steps.error_handler: str(Steps.error_handler),
+                },
+            )
+
         graph.add_conditional_edges(
             str(Steps.generate_response),
             lambda x: x.next_step,
