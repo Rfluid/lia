@@ -55,7 +55,8 @@ class Workflow(SystemPromptBuilder):
         super().__init__()
         self.tool_evaluator = EvaluateTools()
         self.response_generator = ResponseGenerator()
-        self.vector_manager = VectorManager()
+        if RAG_AVAILABLE:
+            self.vector_manager = VectorManager()
         self.error_handler = ErrorHandler()
         self.summarizer = Summarizer()
 
