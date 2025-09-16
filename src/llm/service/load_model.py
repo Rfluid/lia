@@ -72,7 +72,7 @@ def load_model(
             return VertexAI(
                 model=model_name,
                 api_key=api_key,
-                model_temperature=model_temperature,
+                temperature=model_temperature,
                 **kwargs,  # Pass kwargs to the VertexAI constructor
             )
 
