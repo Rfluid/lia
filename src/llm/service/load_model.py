@@ -3,7 +3,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_cohere import ChatCohere
 from langchain_core.language_models import BaseChatModel
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_google_vertexai import VertexAI
+from langchain_google_vertexai import ChatVertexAI
 from langchain_ollama import OllamaLLM
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
@@ -69,7 +69,7 @@ def load_model(
             )
 
         case LLMProvider.vertex:
-            return VertexAI(
+            return ChatVertexAI(
                 model=model_name,
                 temperature=model_temperature,
                 **kwargs,  # Pass kwargs to the VertexAI constructor
