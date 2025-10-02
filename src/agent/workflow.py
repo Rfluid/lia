@@ -26,6 +26,7 @@ from src.evaluate_tools.main import EvaluateTools
 from src.evaluate_tools.model.tool_config import (
     ToolConfig,
     ToolConfigWithResponse,
+    ToolConfigWithResponseWithoutRAG,
 )
 from src.generate_response import ResponseGenerator
 from src.summarize.main import Summarizer
@@ -207,7 +208,9 @@ class Workflow(SystemPromptBuilder):
                         state.messages,
                     )
 
-            if isinstance(response, ToolConfigWithResponse):
+            if isinstance(response, ToolConfigWithResponse) or isinstance(
+                response, ToolConfigWithResponseWithoutRAG
+            ):
                 ai_message = AIMessage(content=[response.model_dump()])
                 state.messages = [ai_message]
                 if response.tool == "end":
